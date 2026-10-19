@@ -140,7 +140,7 @@ def make_ppt():
     ppt_text(s, 0.9, 1.55, 7.6, 1.25, "InternAgent", 42, WHITE, True)
     ppt_text(s, 0.94, 2.95, 7.2, 1.0, "Internship Matching &\nEligibility Assistant", 25, (224,234,246), True)
     ppt_text(s, 0.94, 4.35, 6.8, 0.85, "A transparent multi-agent workflow for planning, retrieval, matching and validation.", 16, (194,211,231))
-    ppt_text(s, 0.94, 6.62, 7.0, 0.32, "Aryan Gawande  ·  Education & Career Development", 11, (157,229,218), True)
+    ppt_text(s, 0.94, 6.62, 8.1, 0.32, "Aryan Gawande  ·  PRN: 24070126223  ·  Education & Career Development", 10, (157,229,218), True)
     shape = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(9.0), Inches(1.55), Inches(2.7), Inches(2.7))
     shape.fill.solid(); shape.fill.fore_color.rgb = rgb(BLUE); shape.line.fill.background()
     ppt_text(s, 9.22, 2.28, 2.25, 0.9, "PLAN\nMATCH\nVERIFY", 17, WHITE, True, PP_ALIGN.CENTER)
@@ -257,7 +257,7 @@ def make_docx():
     r.font.size = DPt(17); r.font.color.rgb = DRGB(*BLUE)
     doc.add_paragraph()
     doc.add_picture(str(DOCS / "architecture.png"), width=DInches(6.35))
-    p = doc.add_paragraph("Submitted by: Aryan Gawande\nDomain: Education & Career Development\nTechnology: Python · Streamlit · Pandas · Plotly\nDate: 19 October 2026")
+    p = doc.add_paragraph("Submitted by: Aryan Gawande\nPRN: 24070126223\nDomain: Education & Career Development\nTechnology: Python · Streamlit · Pandas · Plotly\nDate: 19 October 2026")
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     for run in p.runs:
         run.font.size = DPt(11); run.font.color.rgb = DRGB(*MUTED)
