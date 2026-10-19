@@ -6,26 +6,29 @@ import plotly.express as px
 import streamlit as st
 
 from agent_workflow import (
-    DOMAIN_OPTIONS, LOCATION_OPTIONS, SKILL_OPTIONS, WORK_MODE_OPTIONS,
-    StudentProfile, load_internships, run_workflow, to_display_records,
+    DOMAIN_OPTIONS,
+    LOCATION_OPTIONS,
+    SKILL_OPTIONS,
+    WORK_MODE_OPTIONS,
+    StudentProfile,
+    load_internships,
+    run_workflow,
+    to_display_records,
 )
 
 st.set_page_config(page_title="InternAgent | CA-3 PoC", page_icon="🎯", layout="wide")
 
 st.markdown("""
 <style>
-:root { --navy:#12243A; --blue:#3F73F1; --teal:#15A897; --muted:#62728A; }
-.block-container {padding-top:1.4rem; padding-bottom:2rem; max-width: 1400px;}
-.hero { padding: 1.5rem 1.8rem; border-radius: 18px; background: linear-gradient(120deg,#12243A 0%,#223F65 68%,#2A7778 100%); color: white; margin-bottom: 1.15rem; }
+.block-container {padding-top:1.4rem; padding-bottom:2rem; max-width:1400px;}
+.hero {padding:1.5rem 1.8rem; border-radius:18px; background:linear-gradient(120deg,#12243A 0%,#223F65 68%,#2A7778 100%); color:white; margin-bottom:1.15rem;}
 .hero h1 {font-size:2.1rem; margin:0 0 .35rem 0; color:white; letter-spacing:-.03em;}
 .hero p {margin:0; color:#D9E5F5; font-size:1rem;}
-.small-label {color:#62728A; font-size:.82rem; text-transform:uppercase; letter-spacing:.08em; font-weight:700;}
 .agent-card {border:1px solid #E3E9F2; border-radius:14px; padding:14px 16px; height:100%; background:#FFFFFF;}
 .agent-title {font-weight:700; color:#12243A; font-size:1rem; margin-bottom:5px;}
 .agent-desc {font-size:.88rem; color:#62728A; line-height:1.4;}
-.metric-note {font-size:.78rem; color:#62728A;}
-.footnote {font-size:.78rem; color:#62728A; border-top:1px solid #E3E9F2; padding-top:12px; margin-top:22px;}
 [data-testid="stMetric"] {border:1px solid #E3E9F2; border-radius:12px; padding:10px 12px; background:#FBFCFE;}
+.footnote {font-size:.78rem; color:#62728A; border-top:1px solid #E3E9F2; padding-top:12px; margin-top:22px;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -39,7 +42,7 @@ st.markdown("""
 
 with st.sidebar:
     st.markdown("## 👤 Student profile")
-    st.caption("Use a synthetic profile for the classroom demo. No personal records are sent anywhere.")
+    st.caption("Use a synthetic profile for this classroom demo. No profile data is sent to external services.")
     with st.form("profile_form"):
         year = st.selectbox("Current academic year", [1, 2, 3, 4], index=1)
         cgpa = st.slider("Current CGPA", 5.0, 10.0, 7.5, 0.1)
@@ -67,9 +70,14 @@ if "workflow_result" not in st.session_state:
 if submitted:
     try:
         profile = StudentProfile(
-            year=year, cgpa=cgpa, skills=skills, interests=interests,
-            preferred_location=location, preferred_work_mode=work_mode,
-            min_stipend=min_stipend, top_k=top_k,
+            year=year,
+            cgpa=cgpa,
+            skills=skills,
+            interests=interests,
+            preferred_location=location,
+            preferred_work_mode=work_mode,
+            min_stipend=min_stipend,
+            top_k=top_k,
         )
         with st.spinner("Agents are planning, researching, matching, and validating..."):
             st.session_state.workflow_result = run_workflow(profile)
@@ -78,94 +86,130 @@ if submitted:
 
 result = st.session_state.workflow_result
 if not result:
-    st.info("Complete or keep the sample student profile in the sidebar, then click **Run agent workflow** to start the agents.")
     sample = load_internships()
     c1, c2, c3 = st.columns(3)
     c1.metric("Synthetic opportunities", len(sample))
-    c2.metric("Agent stages", "4")
-    c3.metric("External API calls", "0")
+    c2.metric("Agent stages", 4)
+    c3.metric("External API calls", 0)
+    st.info("Keep the sample profile or adjust it in the sidebar, then click **Run agent workflow**.")
     st.markdown("### Agent team")
     cols = st.columns(4)
     agent_summary = [
-        ("🧭 Planner Agent", "Creates a sequenced plan for research, screening, matching, and validation."),
-        ("🔎 Research Agent", "Searches the synthetic internship dataset and applies the minimum-stipend filter."),
-        ("🎯 Matching Agent", "Checks academic eligibility and ranks suitable roles with an explainable score."),
-        ("🛡️ Critic Agent", "Independently checks scores, eligibility, ranking, duplicate IDs, and top-k count."),
+        ("🧭 Planner Agent", "Breaks the request into ordered tasks."),
+        ("🔎 Research Agent", "Retrieves synthetic listings and applies the stipend preference."),
+        ("🎯 Matching & Eligibility Agent", "Applies academic rules, calculates fit scores, and identifies skill gaps."),
+        ("🛡️ Critic Agent", "Rechecks eligibility, scores, ordering, unique IDs, and result count."),
     ]
     for col, (title, desc) in zip(cols, agent_summary):
         with col:
-            st.markdown(f'<div class="agent-card"><div class="agent-title">{title}</div><div class="agent-desc">{desc}</div></div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="agent-card"><div class="agent-title">{title}</div><div class="agent-desc">{desc}</div></div>',
+                unsafe_allow_html=True,
+            )
     st.markdown("### Architecture")
     st.image("docs/architecture.png", use_container_width=True)
-    st.caption("All internship records are fictional sample data for the CA-3 demonstration.")
+    st.caption("All internship listings and company names are fictional, for demonstration only.")
     st.stop()
 
 if "error" in result:
     st.error(f"Workflow failed: {result['error']}")
     st.stop()
 
-summary = result.get("summary", {})
+metadata = result.get("metadata", {})
 recommendations = result.get("recommendations", [])
 validation = result.get("validation", {})
 
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Source opportunities", summary.get("source_count", 0))
-m2.metric("Eligible opportunities", summary.get("eligible_count", 0))
-m3.metric("Recommendations returned", len(recommendations))
+m1.metric("Source opportunities", metadata.get("source_records", 0))
+m2.metric("Eligible opportunities", metadata.get("eligible_count", 0))
+m3.metric("Recommendations", len(recommendations))
 m4.metric("Critic checks", f"{validation.get('checks_passed', 0)}/{validation.get('checks_total', 0)}")
 
 st.markdown("## 🏆 Recommended internships")
 if recommendations:
-    df = pd.DataFrame(to_display_records(recommendations))
-    if "match_score" in df.columns:
-        fig = px.bar(df, x="match_score", y="role", orientation="h", color="match_score", range_color=(0, 100),
-                     labels={"match_score": "Match score", "role": "Internship role"}, title="Explainable match scores")
-        fig.update_layout(yaxis={"categoryorder": "total ascending"}, coloraxis_showscale=False, margin=dict(l=10, r=10, t=50, b=10))
-        st.plotly_chart(fig, use_container_width=True)
-    for i, item in enumerate(recommendations, 1):
-        with st.expander(f"#{i} · {item.get('role', 'Internship')} — {item.get('match_score', 0):.1f}% match", expanded=(i == 1)):
+    chart_df = pd.DataFrame([
+        {"Role": item["role"], "Match score": float(item["match_score"])}
+        for item in recommendations
+    ])
+    fig = px.bar(
+        chart_df, x="Match score", y="Role", orientation="h",
+        range_x=[0, 100], text="Match score", title="Explainable match scores",
+    )
+    fig.update_layout(
+        yaxis={"categoryorder": "total ascending"},
+        margin=dict(l=10, r=10, t=50, b=10),
+    )
+    fig.update_traces(texttemplate="%{text:.1f}%", textposition="outside", cliponaxis=False)
+    st.plotly_chart(fig, use_container_width=True)
+
+    for index, item in enumerate(recommendations, 1):
+        with st.expander(f"#{index} · {item['role']} — {item['match_score']:.1f}% match", expanded=index == 1):
             left, right = st.columns([2, 1])
             with left:
-                st.markdown(f"**Organization:** {item.get('company', '—')} (fictional demo data)")
-                st.markdown(f"**Domain:** {item.get('domain', '—')} · **Location:** {item.get('location', '—')} · **Mode:** {item.get('work_mode', '—')}")
-                st.markdown(f"**Stipend:** ₹{item.get('stipend', 0):,}/month · **Duration:** {item.get('duration_months', '—')} months")
-                st.markdown("**Skill gaps to work on:** " + (", ".join(item.get("missing_skills", [])) or "None identified"))
-                st.caption(item.get("explanation", ""))
+                st.markdown(f"**Organization:** {item['company']} *(fictional sample data)*")
+                st.markdown(f"**Domain:** {item['domain']} · **Location:** {item['location']} · **Mode:** {item['work_mode']}")
+                st.markdown(f"**Stipend:** ₹{int(item['stipend_inr']):,}/month · **Duration:** {item['duration_weeks']} weeks")
+                st.markdown("**Skills matched:** " + (", ".join(item["matching_skills"]) or "No required skills matched yet"))
+                st.markdown("**Skill gaps to work on:** " + (", ".join(item["missing_skills"]) or "None identified"))
+                st.caption(
+                    "Score components — "
+                    f"skills {item['skill_match']:.1f}% · domain {item['interest_match']:.1f}% · "
+                    f"preferences {item['preference_fit']:.1f}% · academic buffer {item['academic_fit']:.1f}%"
+                )
             with right:
-                st.metric("Match score", f"{item.get('match_score', 0):.1f}%")
-                st.metric("Eligibility", "PASS" if item.get("eligible", False) else "FAIL")
-    csv_data = df.to_csv(index=False).encode("utf-8")
-    st.download_button("Download recommendations (CSV)", csv_data, "internagent_recommendations.csv", "text/csv")
-    st.download_button("Download full workflow result (JSON)", json.dumps(result, indent=2, ensure_ascii=False, default=str),
-                       "internagent_workflow_result.json", "application/json")
+                st.metric("Match score", f"{item['match_score']:.1f}%")
+                st.metric("Eligibility", "PASS" if item["eligible"] else "FAIL")
+
+    export_df = pd.DataFrame(to_display_records(recommendations))
+    st.download_button(
+        "Download recommendations (CSV)",
+        export_df.to_csv(index=False).encode("utf-8"),
+        "internagent_recommendations.csv",
+        "text/csv",
+    )
+    st.download_button(
+        "Download workflow result (JSON)",
+        json.dumps(result, indent=2, ensure_ascii=False, default=str),
+        "internagent_workflow_result.json",
+        "application/json",
+    )
 else:
-    st.warning("No internship matched these profile filters. Try lowering the minimum stipend or adjusting profile preferences.")
+    st.warning("No internship matched the current filters. Try lowering the minimum stipend or adjusting the profile.")
 
 st.markdown("## 🧭 Agent execution trace")
-for step in result.get("trace", []):
-    with st.expander(f"{step.get('agent', 'Agent')} · {step.get('status', 'complete')}", expanded=False):
-        st.write(step.get("summary", ""))
-        if step.get("details"):
-            st.json(step["details"])
+for step in result.get("execution_log", []):
+    with st.expander(f"{step.get('agent', 'Agent')} · {step.get('status', 'complete')}"):
+        st.write(step.get("detail", ""))
 
 st.markdown("## 🛡️ Critic validation")
-if validation.get("passed", False):
+if validation.get("valid", False):
     st.success("All critic validation checks passed. Recommendations are ready to display.")
 else:
-    st.error("Critic validation identified issues. Review the checks and workflow trace before relying on the recommendations.")
+    st.error("The Critic Agent identified issues. Inspect the checks before relying on recommendations.")
 for check in validation.get("checks", []):
-    label = check.get("name", "Validation check")
-    detail = check.get("details", "")
-    if check.get("passed", False):
-        st.write(f"✅ **{label}:** {detail}")
-    else:
-        st.write(f"❌ **{label}:** {detail}")
+    label = check.get("check", "Validation check")
+    status = "✅" if check.get("passed", False) else "❌"
+    st.write(f"{status} **{label}**")
 
-with st.expander("Eligibility watchlist: why some roles were excluded"):
-    exclusions = result.get("excluded", [])
+with st.expander("Eligibility watchlist: why roles were excluded"):
+    exclusions = result.get("ineligible", [])
     if exclusions:
-        st.dataframe(pd.DataFrame(exclusions), use_container_width=True, hide_index=True)
+        exclusion_rows = [
+            {
+                "ID": row["internship_id"],
+                "Company": row["company"],
+                "Role": row["role"],
+                "Required year": f"{row['min_year']}–{row['max_year']}",
+                "Minimum CGPA": row["min_cgpa"],
+                "Reason": " ".join(row["eligibility_blockers"]),
+            }
+            for row in exclusions
+        ]
+        st.dataframe(pd.DataFrame(exclusion_rows), use_container_width=True, hide_index=True)
     else:
-        st.caption("No roles were excluded after the current filter settings.")
+        st.caption("No roles were excluded by the academic eligibility rules.")
 
-st.markdown('<div class="footnote">CA-3 academic proof of concept · synthetic data only · not a live job board and not an automated hiring decision.</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="footnote">CA-3 academic proof of concept · synthetic data only · not a live job board or automated hiring decision.</div>',
+    unsafe_allow_html=True,
+)
